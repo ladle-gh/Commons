@@ -1,10 +1,9 @@
-package com.lcj.commons;
+package com.lcj.commons.util;
 
 import java.io.Serializable;
-import com.lcj.commons.checks.NonNull;
+
 
 public final class Union<D, A> extends ImmutableUnion<D, A> implements Serializable {
-// public
 	public static <D, A> Union<D, A> from(D dValue) {
 		return (Union<D, A>) new Union<D, A>().setDefault(dValue);
 	}
@@ -12,7 +11,7 @@ public final class Union<D, A> extends ImmutableUnion<D, A> implements Serializa
 		return (Union<D, A>) new Union<D, A>().setAlternate(aValue);
 	}
 
-	public Union(@NonNull ImmutableUnion<D, A> other) {
+	public Union( ImmutableUnion<D, A> other) {
 		super(other);
 	}
 	
@@ -23,7 +22,6 @@ public final class Union<D, A> extends ImmutableUnion<D, A> implements Serializa
 		return (Union<D, A>) super.setAlternate(obj);
 	}
 
-// private
 	private Union() {
 		super();
 	}

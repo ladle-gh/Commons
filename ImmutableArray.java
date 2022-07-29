@@ -1,70 +1,182 @@
-package com.lcj.commons;
+package com.lcj.commons.util;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import com.lcj.commons.checks.NonNull;
+import com.lcj.commons.function.MemberConsumer;
+import com.lcj.commons.function.MemberSupplier;
 
 /**
+ * Represents an array of objects. Positions in the array may not be reassigned
+ * the object they reference.<br>
+ * <br>
+ * This class assists in the creation of type-safe, expressive, and easy-use generic arrays within classes that require them. Additionally,  than what one could use by
+ * simply populating an {@code Object[]} with objects of a generic type.<br>
+ * <br>
+ * For example, the following:
  * 
+ * <pre>
+ * {@code
+ * 		class ClassicGenericArray<T> {
+ * 			Object[] arrayOfTs;
+ * 			T[] actualTs;	// = instance of T[]
  *
+ * 			void initialize(T x, T y, T z) {
+ * 				arrayOfTs = new Object[] {x, y, z};
+ * 			}
+ *			void initializeUsingSuppplier() {
+ *				arrayOfTs = new Object[10];
+ *				for (int i = 0; i < arrayOfTs.length; ++i)
+ *					arrayOfTs[i] = actualTs[0];
+ *			}
+ *			void initializeUsingIndexedSuppplier() {
+ *				arrayOfTs = new Object[10];
+ *				for (int i = 0; i < arrayOfTs.length; ++i)
+ *					arrayOfTs[i] = actualTs[i];
+ *			}
+ * 			T getMember {
+ * 				return T
+ * 			}
+ * 			var makeTArrayCopy {
+ * 				
+ * 			}
+ * 			void invokeForEach {
+ * 				
+ * 			}
+ * 			void invokeForEachRemaining {
+ * 				
+ * 			}
+ * 		}
+ * }
+ * </pre>
+ * 
+ * is equivalent to:
+ * 
+ * <pre>
+ * {@code
+ * 		class ImprovedGenericArray<T> {
+ * 			ImmutableArray<T> arrayOfTs;
+ * 			T[] actualTs;	// = instance of T[]
+ * 
+ * 			void initialize(T x, T y, T z) {
+ * 				arrayOfTs = new ImmutableArray<>(x, y, z);
+ * 			}
+ * 			void initializeUsingSuppplier() {
+ * 				arrayOfTs = new ImmutableArray<>(10, () -> actualTs[0]);
+ * 			}
+ *   		void initializeUsingIndexedSuppplier() {
+ * 				arrayOfTs = new ImmutableArray<>(10, (i) -> actualTs[i]);
+ * 			}
+ * 			var getMember {
+ * 				
+ * 			}
+ * 			var makeTArrayCopy {
+ * 				
+ * 			}
+ * 			void invokeForEach {
+ * 				
+ * 			}
+ * 			void invokeForEachRemaining {
+ * 				
+ * 			}
+ * }
+ * </pre>
+ * 
+ * Although similar results may be achieved by 
  * @param <T> Type of array members
+ * @see ObjectArray
+ * @apiNote
+ *          ewd
  */
 @SuppressWarnings("unchecked")
 public sealed class ImmutableArray<T> implements Iterable<T>, Serializable permits ObjectArray<T> {
-// public
 	public final int length;
 
-	@FunctionalInterface
-	public static interface IndexedConsumer<T> {
-		public void accept(T obj, int index);
-	}
-	@FunctionalInterface
-	public static interface IndexedFunction<T, R>  {
-		public R apply(T obj, int index);
-	}
-	@FunctionalInterface
-	public static interface IndexedSupplier<T> {
-		public T get(int index);
-	}
+	public sealed class Iterator implements java.util.Iterator<T>permits ObjectArray<T>.Iterator {
+		public final void forEachRemaining(MemberConsumer<? super T> action) {
+			for (int j = i; j < self.length; ++j)
+				action.accept((T) self[j], j);
+		}
 
+		@Override
+		public void forEachRemaining(Consumer<? super T> action) {
+			for (int j = i; j < self.length; ++j)
+				action.accept((T) self[j]);
+		}
+		@Override
+		public boolean hasNext() {
+			return i < self.length;
+		}
+		@Override
+		public T next() {
+			return (T) self[i++];
+		}
+
+		protected int i = 0;
+
+		protected Iterator() {
+		}
+	};
+
+	public ImmutableArray( Supplier<T> defaultInitializer, int capacity) {
+		
+		self = new Object[length = capacity];
+		isTypeKnown = false;
+		applyToEach(defaultInitializer);
+	}
+	public ImmutableArray( MemberSupplier<T> defaultInitializer, int capacity) {
+		
+		self = new Object[length = capacity];
+		isTypeKnown = false;
+		applyToEach(defaultInitializer);
+	}
 	@SafeVarargs
-	public ImmutableArray(@NonNull T... objs) {
-		NonNull.Check.params(objs);
+	public ImmutableArray( T... objs) {
+		
 		length = objs.length;
 		self = objs.clone();
 		isTypeKnown = objs.length != 0;
 	}
-	public ImmutableArray(Supplier<T> defaultInitializer, @NonNull T... objs) {
-		NonNull.Check.params(objs);
-		length = objs.length;
-		self = objs.clone();
-		isTypeKnown = objs.length != 0;
-		applyToEach(defaultInitializer);
-	}
-	public ImmutableArray(IndexedSupplier<T> defaultInitializer, @NonNull T... objs) {
-		NonNull.Check.params(objs);
+	public ImmutableArray( Supplier<T> defaultInitializer,  T... objs) {
+		
+		
 		length = objs.length;
 		self = objs.clone();
 		isTypeKnown = objs.length != 0;
 		applyToEach(defaultInitializer);
 	}
-	public ImmutableArray(@NonNull ImmutableArray<T> other) {
-		NonNull.Check.params(other);
+	public ImmutableArray( MemberSupplier<T> defaultInitializer,  T... objs) {
+		
+		length = objs.length;
+		self = objs.clone();
+		isTypeKnown = objs.length != 0;
+		applyToEach(defaultInitializer);
+	}
+	public ImmutableArray( ObjectArray<T> objArray) {
+		
+		length = objArray.length;
+		self = objArray.self.clone();
+		isTypeKnown = objArray.isTypeKnown;
+	}
+	public ImmutableArray( ImmutableArray<T> other) {
+		
 		length = other.length;
-		self = other.self.clone();
+		self = other.self;
 		isTypeKnown = other.isTypeKnown;
 	}
-
 
 	public final T get(int index) {
 		return (T) self[index];
 	}
-	@NonNull
-	public final T[] toArray(Class<T[]> type) {
-		return isTypeKnown ? (T[]) self.clone() : Arrays.copyOf(self, self.length, type);
+	
+	public final T[] toArray( Class<T[]> type) {
+		
+		if (isTypeKnown)
+			return (T[]) self.clone();
+		self = Arrays.copyOf(self, self.length, type);
+		isTypeKnown = true;
+		return (T[]) self;
 	}
 
 	@Override
@@ -76,36 +188,8 @@ public sealed class ImmutableArray<T> implements Iterable<T>, Serializable permi
 		return Arrays.equals(self, ((ImmutableArray<?>) obj).self);
 	}
 	@Override
-	public final void forEach(Consumer<? super T> action) {
-		for (int i = 0; i < self.length; ++i)
-			action.accept((T) self[i]);
-	}
-	@Override
-	public final Iterator<T> iterator() {
-		return new Iterator<>() {
-//		public
-			public void forEachRemaining(IndexedConsumer<? super T> action) {
-				for (int i = 0; i < self.length; ++i)
-					action.accept((T) self[i], i);
-			}
-
-			@Override
-			public void forEachRemaining(Consumer<? super T> action) {
-				for (int j = i; j < self.length; ++j)
-					action.accept((T) self[j]);
-			}
-			@Override
-			public boolean hasNext() {
-				return i < self.length;
-			}
-			@Override
-			public T next() {
-				return (T) self[i++];
-			}
-
-//		private
-			private int i = 0;
-		};
+	public Iterator iterator() {
+		return new Iterator();
 	}
 	@Override
 	public final int hashCode() {
@@ -116,32 +200,22 @@ public sealed class ImmutableArray<T> implements Iterable<T>, Serializable permi
 		return Arrays.toString(self);
 	}
 
-// protected
-	protected @NonNull Object[] self;
+	protected  Object[] self;
 	protected boolean isTypeKnown;
 
-	protected ImmutableArray() {
-		self = new Object[length = Commons.DEFAULT_ARRAY_SIZE];
-		isTypeKnown = false;
-	}
 	protected ImmutableArray(int capacity) {
 		self = new Object[length = capacity];
 		isTypeKnown = false;
-	}
-	protected ImmutableArray(int capacity, T... objs) {
-		self = Arrays.copyOf(objs, length = objs.length + capacity);
-		isTypeKnown = true;
 	}
 
 	protected final void applyToEach(Supplier<? extends T> action) {
 		for (int i = 0; i < self.length; ++i)
 			self[i] = action.get();
 	}
-	protected final void applyToEach(IndexedSupplier<? extends T> action) {
+	protected final void applyToEach(MemberSupplier<? extends T> action) {
 		for (int i = 0; i < self.length; ++i)
 			self[i] = action.get(i);
 	}
 
-// private
 	private static final long serialVersionUID = 1L;
 }

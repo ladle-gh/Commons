@@ -1,9 +1,10 @@
-package com.lcj.commons;
+package com.lcj.commons.util;
 
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.function.Consumer;
-import com.lcj.commons.checks.NonNull;
+import com.lcj.commons.Commons;
+import com.lcj.commons.util.ref.IntReference;
 
 /**
  *
@@ -11,36 +12,33 @@ import com.lcj.commons.checks.NonNull;
  * @param <T> Type of item to be stored in lookup table
  */
 public class Lookup<T> implements Serializable {
-// public
 	public Lookup() {
 		this.capacity = Commons.DEFAULT_LOOKUP_SIZE;
 		records = new ObjectArray<>();
-		size = new Reference<>(0);
+		size = new IntReference(0);
 	}
 	/* Lower capacity = optimize for memory usage Higher capacity = optimize for
 	 * speed */
 	public Lookup(int capacity) {
 		records = new ObjectArray<>();
-		size = new Reference<>(0);
+		size = new IntReference(0);
 	}
 	@SafeVarargs
-	public Lookup(@NonNull @NonNull.Members T... items) {
-		NonNull.Check.params(items);
-		NonNull.Check.members(items);
+	public Lookup(T... items) {
+
 		records = new ObjectArray<>(this.capacity = items.length + Commons.DEFAULT_LOOKUP_SIZE);
-		size = new Reference<>(0);
-		Utility.forEach(items, item -> addHash(item.hashCode()));
+		size = new IntReference(0);
+		ObjectArray.iterator(items).forEachRemaining(item -> addHash(item.hashCode()));
 
 	}
-	public Lookup(@NonNull Lookup<T> other) {
-		NonNull.Check.params(other);
+	public Lookup(Lookup<T> other) {
 
 		records = new ObjectArray<>(i -> {
 			final var otherCell = other.records.get(i);
 
 			if (otherCell == null)
 				return null;
-			if (otherCell.type() == UnionType.DEFAULT)
+			if (otherCell.type() == UnionMember.DEFAULT)
 				return Union.from(otherCell.get());
 			return Union.fromAlt(otherCell.getAlt());
 		}, other.records.length);
@@ -53,14 +51,14 @@ public class Lookup<T> implements Serializable {
 	 * @param item
 	 * @return this
 	 */
-	@NonNull
-	public final Lookup<T> add(@NonNull T item) {
-		NonNull.Check.params(item);
+
+	public final Lookup<T> add(T item) {
+
 		addHash(item.hashCode());
 		return this;
 	}
-	@SafeVarargs @NonNull
-	public final Lookup<T> add(@NonNull T item, @NonNull @NonNull.Members T... more) {
+	@SafeVarargs
+	public final Lookup<T> add(T item, T... more) {
 		modify(item, more, this::addHash);
 		return this;
 	}
@@ -69,8 +67,8 @@ public class Lookup<T> implements Serializable {
 	 * @param item
 	 * @return
 	 */
-	public boolean has(@NonNull T item) {
-		NonNull.Check.params(item);
+	public boolean has(T item) {
+
 		return hasHash(item.hashCode());
 	}
 	/**
@@ -78,18 +76,18 @@ public class Lookup<T> implements Serializable {
 	 * @param item
 	 * @return this
 	 */
-	@NonNull
-	public Lookup<T> remove(@NonNull T item) {
-		NonNull.Check.params(item);
+
+	public Lookup<T> remove(T item) {
+
 		removeHash(item.hashCode());
 		return this;
 	}
-	@SafeVarargs @NonNull
-	public final Lookup<T> remove(@NonNull T item, @NonNull @NonNull.Members T... more) {
+	@SafeVarargs
+	public final Lookup<T> remove(T item, T... more) {
 		modify(item, more, this::removeHash);
 		return this;
 	}
-	@NonNull @Override
+	@Override
 	public String toString() {
 		return Arrays.toString(getHashes());
 	}
@@ -106,12 +104,11 @@ public class Lookup<T> implements Serializable {
 		return records.equals(lookup.records);
 	}
 
-// private
 	private final static long serialVersionUID = 1L;
 
-	private @NonNull ObjectArray<Union<Integer, Lookup<T>>> records;
+	private ObjectArray<Union<Integer, Lookup<T>>> records;
 	private int capacity;
-	private final Reference<Integer> size; // sized int, as presumed to be well under max memory when mul by 4 (size of
+	private final IntReference size; // sized int, as presumed to be well under max memory when mul by 4 (size of
 	                                       // Object); references parent size
 
 	private Lookup(int capacity, Lookup<T> parent) {
@@ -159,9 +156,9 @@ public class Lookup<T> implements Serializable {
 		};
 	}
 	/* This function does three things */
-	@NonNull
+
 	private Lookup<T> getNested(int length) {
-		if (size.self + 1.0 / (capacity + length) < Utility.ACCEPTABLE_LOAD)
+		if (size.self + 1.0 / (capacity + length) < Commons.LOOKUP_LOAD_FACTOR)
 			rehash(); // Rehash to reduce load factor
 		capacity += length - 1;
 		return new Lookup<>(length, this);
@@ -170,9 +167,8 @@ public class Lookup<T> implements Serializable {
 	private int indexOf(int hash) {
 		return Math.abs(hash % records.length);
 	}
-	private void modify(@NonNull T item, @NonNull @NonNull.Members T[] more, Consumer<Integer> action) {
-		NonNull.Check.params(item, more);
-		NonNull.Check.members(more);
+	private void modify(T item, T[] more, Consumer<Integer> action) {
+
 		action.accept(item.hashCode());
 		for (final T obj : more)
 			action.accept(obj.hashCode());
@@ -206,7 +202,7 @@ public class Lookup<T> implements Serializable {
 		final Integer[] hashes = getHashes();
 
 		records = new ObjectArray<>(records.length * 2);
-		Utility.forEach(hashes, hash -> addHash(hash));
+		ObjectArray.iterator(hashes).forEachRemaining(hash -> addHash(hash));
 	}
 	// Removes hash from lookup; return this
 	private void removeHash(int hash) {

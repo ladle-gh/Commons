@@ -1,10 +1,9 @@
-package com.lcj.commons;
+package com.lcj.commons.util;
 
 import java.io.Serializable;
-import com.lcj.commons.checks.NonNull;
+import com.lcj.commons.Utility;
 
 public sealed class ImmutableTuple<F, S> implements Serializable permits Tuple<F, S> {
-// public
 	public ImmutableTuple() {
 		first = null;
 		second = null;
@@ -13,8 +12,8 @@ public sealed class ImmutableTuple<F, S> implements Serializable permits Tuple<F
 		this.first = first;
 		this.second = second;
 	}
-	public ImmutableTuple(@NonNull ImmutableTuple<F, S> other) {
-		NonNull.Check.params(other);
+	public ImmutableTuple(ImmutableTuple<F, S> other) {
+
 		first = other.first;
 		second = other.second;
 	}
@@ -25,7 +24,7 @@ public sealed class ImmutableTuple<F, S> implements Serializable permits Tuple<F
 	public S getSecond() {
 		return second;
 	}
-	@NonNull
+
 	public ImmutableTuple<S, F> swap() {
 		return new ImmutableTuple<>(second, first);
 	}
@@ -51,10 +50,8 @@ public sealed class ImmutableTuple<F, S> implements Serializable permits Tuple<F
 		return "[" + first + ", " + second + "]";
 	}
 
-// protected
 	protected F first;
 	protected S second;
 
-// private
 	private static final long serialVersionUID = 1L;
 }
